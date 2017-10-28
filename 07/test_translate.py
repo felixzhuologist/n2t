@@ -1,20 +1,21 @@
 from difflib import unified_diff
 
-from util import Segment
+from arithmetic import binary_op, unary_op
 from push import push
 from pop import pop
 
-def test_command(f, segment, arg, expected):
-  result = f(segment, arg)
+
+def test_command(f, *args, expected):
+  result = f(*args)
   diff = unified_diff(result, expected)
-  print(f'diff for {f.__name__}({segment}, {arg}): ')
+  print(f'diff for {f.__name__}{args}: ')
   for line in diff:
     print(line)
   print()
 
 def test_push():
   # push constant
-  test_command(push, Segment.S_CONSTANT, 9, [
+  test_command(push, 'constant', 9, expected=[
     '@9',
     'D=A',
 
@@ -27,7 +28,7 @@ def test_push():
   ])
 
   # push from heap segment
-  test_command(push, Segment.S_LCL, 3, [
+  test_command(push, 'local', 3, expected=[
     '@3',
     'D=A',
     '@LCL',
@@ -43,7 +44,7 @@ def test_push():
   ])
 
   # push from pointer
-  test_command(push, Segment.S_POINTER, 1, [
+  test_command(push, 'pointer', 1, expected=[
     '@THAT',
     'A=M',
     'D=M',
@@ -57,7 +58,7 @@ def test_push():
   ])
 
   # push from temp
-  test_command(push, Segment.S_TEMP, 3, [
+  test_command(push, 'temp', 3, expected=[
     '@8',
     'D=M',
 
@@ -70,7 +71,7 @@ def test_push():
   ])
 
   # push from static
-  test_command(push, Segment.S_STATIC, 4, [
+  test_command(push, 'static', 4, expected=[
     '@test_translate.4',
     'D=M',
 
@@ -84,7 +85,7 @@ def test_push():
 
 def test_pop():
   # pop onto heap segment
-  test_command(pop, Segment.S_ARG, 3, [
+  test_command(pop, 'argument', 3, expected=[
     '@3',
     'D=A',
     '@ARG',
@@ -106,7 +107,7 @@ def test_pop():
   ])
 
   # pop onto pointer
-  test_command(pop, Segment.S_POINTER, 0, [
+  test_command(pop, 'pointer', 0, expected=[
     '@SP',
     'M=M-1',
 
@@ -120,7 +121,7 @@ def test_pop():
   ])
 
   # pop onto temp
-  test_command(pop, Segment.S_TEMP, 2, [
+  test_command(pop, 'temp', 2, expected=[
     '@SP',
     'M=M-1',
 
@@ -133,7 +134,7 @@ def test_pop():
   ])
 
   # pop onto global segment
-  test_command(pop, Segment.S_STATIC, 4, [
+  test_command(pop, 'static', 4, expected=[
     '@SP',
     'M=M-1',
 
@@ -145,7 +146,125 @@ def test_pop():
     'M=D'
   ])
 
+def test_arithmetic():
+  test_command(binary_op, '+', expected=[
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'D=M',
+
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'M=D+M',
+
+    '@SP',
+    'M=M+1',
+  ])
+
+  test_command(binary_op, '-', expected=[
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'D=M',
+
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'M=D-M',
+
+    '@SP',
+    'M=M+1',
+  ])
+
+  test_command(binary_op, '&', expected=[
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'D=M',
+
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'M=D&M',
+
+    '@SP',
+    'M=M+1',
+  ])
+
+  test_command(unary_op, '-', expected=[
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'M=-M',
+
+    '@SP',
+    'M=M+1',
+  ])
+
+  test_command(unary_op, '!', expected=[
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'M=!M',
+
+    '@SP',
+    'M=M+1',
+  ])
+
+  # test_command(binary_comp, 'JEQ' expected=[
+  #   '@SP',
+  #   'M=M-1',
+
+  #   '@SP',
+  #   'A=M',
+  #   'D=M',
+
+  #   '@SP',
+  #   'M=M-1',
+
+  #   '@SP',
+  #   'A=M',
+  #   'D=M-D',
+
+  #   '@IF_EQUAL',
+  #   'D;JEQ',
+
+  #   'M=0'
+
+  #   '@END'
+  #   '0;JMP'
+
+  #   '(IF_EQUAL)',
+  #   'M=-1',
+  #   '(END)'
+  # ])
+
+  # test_command(binary_comp, 'JGT' expected=[
+
+  # ])
+
+  # test_command(binary_comp, 'JLT', expected=[
+
+  # ])
 
 if __name__ == '__main__':
   test_push()
   test_pop()
+  test_arithmetic()

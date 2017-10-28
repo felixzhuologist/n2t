@@ -7,20 +7,6 @@ import os
 TEMP_BASE_ADDR = 5
 GENERAL_PURPOSE_REGISTERS = ['R13', 'R14', 'R15']
 
-class Segment(Enum):
-  S_LCL = 1 # heap segments
-  S_ARG = 2
-  S_THIS = 3
-  S_THAT = 4
-  S_STATIC = 5 # global segments
-  S_CONSTANT = 6 # virtual segments
-  S_POINTER = 7 # ??
-  S_TEMP = 8 # fixed base address of 5
-
-_ = ''
-# names of segment base addr variables
-segment_names = [_, 'LCL', 'ARG', 'THIS', 'THAT', _, _, _, _]
-
 vm_to_asm_segment = {
   'local': 'LCL',
   'argument': 'ARG'
@@ -45,3 +31,13 @@ def concat(*commands):
 
 def load_constant_into_d(c):
   return [f'@{c}', 'D=A']
+
+def incr_sp():
+  return ['@SP', 'M=M+1']
+
+def decr_sp():
+  return ['@SP', 'M=M-1']
+
+def load_stack_top_into_d():
+  """ dereferences the stack pointer and stores it into the data register """
+  return ['@SP', 'A=M', 'D=M']

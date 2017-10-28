@@ -1,7 +1,8 @@
 #!/usr/local/bin/python3
 
 from util import (load_constant_into_d, get_segment_name, concat,
-  get_pointer_segment, get_temp_addr, get_static_varname)
+  get_pointer_segment, get_temp_addr, get_static_varname,
+  decr_sp, load_stack_top_into_d)
 
 
 def pop(segment: str, value: str):
@@ -48,10 +49,3 @@ def pop_static(_, index):
     load_stack_top_into_d(),
     [f'@{varname}', 'M=D']
   )
-
-def load_stack_top_into_d():
-  """ dereferences the stack pointer and stores it into the data register """
-  return ['@SP', 'A=M', 'D=M']
-
-def decr_sp():
-  return ['@SP', 'M=M-1']

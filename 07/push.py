@@ -1,5 +1,5 @@
 from util import (load_constant_into_d, get_segment_name, concat,
-  get_pointer_segment, get_temp_addr, get_static_varname)
+  get_pointer_segment, get_temp_addr, get_static_varname, incr_sp)
 
 
 def push(segment: str, value: str):
@@ -60,6 +60,3 @@ def load_heap_val_into_d(segment, index):
     load_constant_into_d(index),
     [f'@{segment}', 'A=D+M', 'D=M']
   )
-
-def incr_sp():
-  return ['@SP', 'M=M+1']
