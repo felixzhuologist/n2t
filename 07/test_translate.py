@@ -1,6 +1,8 @@
 from difflib import unified_diff
 
-from translate import Segment, push, pop
+from util import Segment
+from push import push
+from pop import pop
 
 def test_command(f, segment, arg, expected):
   result = f(segment, arg)
