@@ -39,6 +39,9 @@ def get_segment_name(segment: Segment) -> str:
 def push(segment: Segment, value: str):
   return get_push_f(segment)(get_segment_name(segment), value)
 
+def pop(segment: Segment, value: str):
+  return get_pop_f(segment)(get_segment_name(segment), value)
+
 def get_push_f(segment):
   map_ = {
     Segment.S_STATIC: push_static,
@@ -47,6 +50,14 @@ def get_push_f(segment):
     Segment.S_TEMP: push_temp
   }
   return map_.get(segment, push_heap)
+
+def get_pop_f(segment):
+  map_ = {
+    Segment.S_STATIC: pop_static,
+    Segment.S_POINTER: pop_pointer,
+    Segment.S_TEMP: pop_temp
+  }
+  return map_.get(segment)
 
 def push_constant(_, c):
   return concat(
@@ -63,41 +74,78 @@ def push_heap(segment, index):
   )
 
 def push_pointer(_, val):
-  segment = 'THIS' if val == '0' else 'THAT'
+  segment = get_pointer_segment(val)
   return concat(
-    load_pointer_val_into_d(segment),
+    [f'@{segment}', 'A=M', 'D=M'],
     push_d_onto_stack(),
     incr_sp()
   )
 
+def pop_pointer(_, val):
+  segment = get_pointer_segment(val)
+  return concat(
+    decr_sp(),
+    load_stack_top_into_d(),
+    [f'@{segment}', 'A=M', 'M=D']
+  )
+
+def get_pointer_segment(pointer_val):
+  return 'THIS' if str(pointer_val) == '0' else 'THAT'
+
 def push_temp(_, index):
-  addr = TEMP_BASE_ADDR + int(index)
+  addr = get_temp_addr(index)
   return concat(
     [f'@{addr}', 'D=M'],
     push_d_onto_stack(),
     incr_sp()
   )
 
+def pop_temp(_, index):
+  addr = get_temp_addr(index)
+  return concat(
+    decr_sp(),
+    load_stack_top_into_d(),
+    [f'@{addr}', 'M=D']
+  )
+
+def get_temp_addr(index):
+  return TEMP_BASE_ADDR + int(index)
+
 def push_static(_, index):
-  module = os.path.basename(__file__)
-  varname = f'{module}.{index}'
+  varname = get_static_varname(index)
   return concat(
     [f'@{varname}', 'D=M'],
     push_d_onto_stack(),
     incr_sp()
   )
 
+def pop_static(_, index):
+  varname = get_static_varname(index)
+  return concat(
+    decr_sp(),
+    load_stack_top_into_d(),
+    [f'@{varname}', 'M=D']
+  )
+
+def get_static_varname(index):
+  module = os.path.basename(__file__)
+  return f'{module}.{index}'
+
 def load_constant_into_d(c):
   return [f'@{c}', 'D=A']
-
-def load_pointer_val_into_d(pointer):
-  return [f'@{pointer}', 'A=M', 'D=M']
 
 def push_d_onto_stack():
   return ['@SP', 'A=M', 'M=D']
 
+def load_stack_top_into_d():
+  """ dereferences the stack pointer and stores it into the data register """
+  return ['@SP', 'A=M', 'D=M']
+
 def load_heap_val_into_d(segment, index):
-  return load_constant_into_d(index) + [f'@{segment}', 'A=D+M', 'D=M']
+  return concat(
+    load_constant_into_d(index),
+    [f'@{segment}', 'A=D+M', 'D=M']
+  )
 
 def incr_sp():
   return ['@SP', 'M=M+1']

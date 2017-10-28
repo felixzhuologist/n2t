@@ -1,6 +1,6 @@
 from difflib import unified_diff
 
-from translate import Segment, push
+from translate import Segment, push, pop
 
 def test_command(f, segment, arg, expected):
   result = f(segment, arg)
@@ -80,35 +80,48 @@ def test_push():
     'M=M+1'
   ])
 
-# def test_pop()
-#   # pop onto heap segment
+def test_pop():
+  # pop onto pointer
+  test_command(pop, Segment.S_POINTER, 0, [
+    '@SP',
+    'M=M-1',
 
-#   # pop onto pointer
-#   assert pop(Segment.S_POINTER, 0) == [
-#     '@SP',
-#     'M=M-1',
+    '@SP',
+    'A=M',
+    'D=M',
 
-#     '@Sp',
-#     'A=M',
-#     'D=M',
+    '@THIS',
+    'A=M',
+    'M=D'
+  ])
 
-#     '@THIS',
-#     'A=M',
-#     'M=D'
-#   ]
+  # pop onto temp
+  test_command(pop, Segment.S_TEMP, 2, [
+    '@SP',
+    'M=M-1',
 
-#   # pop onto global segment
-#   assert pop(Segment.S_STATIC, 4) == [
-#     '@SP',
-#     'M=M-1',
+    '@SP',
+    'A=M',
+    'D=M',
 
-#     '@SP',
-#     'A=M',
-#     'D=M',
+    '@7',
+    'M=D'
+  ])
 
-#     '@test_translate.4',
-#     'M=D'
-#   ]
+  # pop onto global segment
+  test_command(pop, Segment.S_STATIC, 4, [
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'D=M',
+
+    '@test_translate.4',
+    'M=D'
+  ])
+
 
 if __name__ == '__main__':
   test_push()
+  test_pop()
