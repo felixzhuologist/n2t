@@ -81,6 +81,28 @@ def test_push():
   ])
 
 def test_pop():
+  # pop onto heap segment
+  test_command(pop, Segment.S_ARG, 3, [
+    '@3',
+    'D=A',
+    '@ARG',
+    'D=M+D',
+    
+    '@R13',
+    'M=D',
+
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'D=M',
+
+    '@R13',
+    'A=M',
+    'M=D'
+  ])
+
   # pop onto pointer
   test_command(pop, Segment.S_POINTER, 0, [
     '@SP',

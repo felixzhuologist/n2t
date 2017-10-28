@@ -7,6 +7,7 @@ import os
 
 # base address for temp memory segment
 TEMP_BASE_ADDR = 5
+GENERAL_PURPOSE_REGISTERS = ['R13', 'R14', 'R15']
 
 class Command(Enum):
   C_ARITHMETIC = 1
@@ -29,8 +30,8 @@ class Segment(Enum):
   S_POINTER = 7 # ??
   S_TEMP = 8 # fixed base address of 5
 
-# names of segment base addr variables
 _ = ''
+# names of segment base addr variables
 segment_names = [_, 'LCL', 'ARG', 'THIS', 'THAT', _, _, _, _]
 
 def get_segment_name(segment: Segment) -> str:
@@ -57,7 +58,7 @@ def get_pop_f(segment):
     Segment.S_POINTER: pop_pointer,
     Segment.S_TEMP: pop_temp
   }
-  return map_.get(segment)
+  return map_.get(segment, pop_heap)
 
 def push_constant(_, c):
   return concat(
@@ -71,6 +72,16 @@ def push_heap(segment, index):
     load_heap_val_into_d(segment, index),
     push_d_onto_stack(),
     incr_sp()
+  )
+
+def pop_heap(segment, index):
+  return concat(
+    load_constant_into_d(index),
+    [f'@{segment}', 'D=M+D'], # load addr into D
+    ['@R13', 'M=D'], # store addr into mem
+    decr_sp(),
+    load_stack_top_into_d(),
+    ['@R13', 'A=M', 'M=D']
   )
 
 def push_pointer(_, val):
