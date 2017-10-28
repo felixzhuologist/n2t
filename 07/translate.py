@@ -1,15 +1,12 @@
+#!/usr/local/bin/python3
+
 import argparse
 from enum import Enum
 from functools import partial
 import os
 
-symbols = {
-  'stack': 'SP',
-  'local': 'LCL',
-  'argument': 'ARG',
-  'this': 'THIS',
-  'that': 'THAT',
-}
+# base address for temp memory segment
+TEMP_BASE_ADDR = 5
 
 class Command(Enum):
   C_ARITHMETIC = 1
@@ -23,107 +20,91 @@ class Command(Enum):
   C_CALL = 9
 
 class Segment(Enum):
-  S_LCL = 1
+  S_LCL = 1 # heap segments
   S_ARG = 2
   S_THIS = 3
   S_THAT = 4
+  S_STATIC = 5 # global segments
+  S_CONSTANT = 6 # virtual segments
+  S_POINTER = 7 # ??
+  S_TEMP = 8 # fixed base address of 5
 
-class VM:
+# names of segment base addr variables
+_ = ''
+segment_names = [_, 'LCL', 'ARG', 'THIS', 'THAT', _, _, _, _]
 
-  def __init__(self, out_path):
-    self.out = open(out_path, 'at')
-    self.write = partial(print, file=self.out)
-    self.class = os.path.basename(__file__)
+def get_segment_name(segment: Segment) -> str:
+  return segment_names[segment.value]
 
-  def push(self, segment, index):
-    if segment == 'constant':
-      # D = val
-      self.load_const(index)
-    else:
-      # D = *(segment + index)
-      self.load_const(index) # D = index
-      self.dereference(segment) # M = segment base
-      self.write('A=D+M')
-      self.write('D=M')
+def push(segment: Segment, value: str):
+  return get_push_f(segment)(get_segment_name(segment), value)
 
-    # *sp = *addr
-    self.dereference('SP')
-    self.write('M=D')
+def get_push_f(segment):
+  map_ = {
+    Segment.S_STATIC: push_static,
+    Segment.S_CONSTANT: push_constant,
+    Segment.S_POINTER: push_pointer,
+    Segment.S_TEMP: push_temp
+  }
+  return map_.get(segment, push_heap)
 
-    # sp++
-    self.write('@SP')
-    self.write('M=M+1')
+def push_constant(_, c):
+  return concat(
+    load_constant_into_d(c),
+    push_d_onto_stack(),
+    incr_sp()
+  )
 
-  def pop(self, segment, index):
-    """ pop value of stack and write into segment[index] """
-    # D = *(segment + index)
-    self.load_const(index)
-    self.dereference(segment)
-    self.write('A=D+M')
-    self.write('D=M')
+def push_heap(segment, index):
+  return concat(
+    load_heap_val_into_d(segment, index),
+    push_d_onto_stack(),
+    incr_sp()
+  )
 
-    # sp--
-    self.write('@SP')
-    self.write('M=M-1')
+def push_pointer(_, val):
+  segment = 'THIS' if val == '0' else 'THAT'
+  return concat(
+    load_pointer_val_into_d(segment),
+    push_d_onto_stack(),
+    incr_sp()
+  )
 
-    # *addr = *sp
-    self.dereference('SP')
-    self.write('D=M')
-    self.dereference()
-    self.write('')
+def push_temp(_, index):
+  addr = TEMP_BASE_ADDR + int(index)
+  return concat(
+    [f'@{addr}', 'D=M'],
+    push_d_onto_stack(),
+    incr_sp()
+  )
 
-  def pop_static(self, val):
-    # sp--
-    self.write('@SP')
-    self.write('M=M-1')
+def push_static(_, index):
+  module = os.path.basename(__file__)
+  varname = f'{module}.{index}'
+  return concat(
+    [f'@{varname}', 'D=M'],
+    push_d_onto_stack(),
+    incr_sp()
+  )
 
-    # D = *sp
-    self.dereference('SP')
-    self.write('D=M')
+def load_constant_into_d(c):
+  return [f'@{c}', 'D=A']
 
-    self.write('@{0}.{1}'.format(self.class, val))
-    self.write('M=D')
+def load_pointer_val_into_d(pointer):
+  return [f'@{pointer}', 'A=M', 'D=M']
 
-  # push/pop temp (base address of 5)
-  # push pointer 0/1 -> *sp = THIS/THAT, sp++
-  # pop pointer 0/1 -> sp--, THIS/THAT = *sp
-  # SP LCL ARG THIS THAT temp, registers, static, stack
+def push_d_onto_stack():
+  return ['@SP', 'A=M', 'M=D']
 
-  def load_const(self, val):
-    """ loads const into D register. """
-    self.write('@' + str(val))
-    self.write('D=A')
+def load_heap_val_into_d(segment, index):
+  return load_constant_into_d(index) + [f'@{segment}', 'A=D+M', 'D=M']
 
-  def dereference(self, register):
-    """ Loads value at memory location stored in register into M """
-    self.write('@' + str(val))
-    self.write('A=M')
+def incr_sp():
+  return ['@SP', 'M=M+1']
 
-  def pop(self, segment, index):
-       self._load_seg(seg, index, indir)
-        self._comp_to_reg(R_COPY, 'D')      # R_COPY=D
-        self._stack_to_dest('D')            # D=*SP
-        self._reg_to_dest('A', R_COPY)      # A=R_COPY
-        self._c_command('M', 'D')           # *(seg+index)=D
-    
+def decr_sp():
+  return ['@SP', 'M=M-1']
 
+def concat(*commands):
+  return [c for command in commands for c in command]
 
-
-if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='translate vm code to assembly')
-  parser.add_argument('vm_file', help='path to vm file to translate')
-  args = parser.parse_args()
-  
-  out_file = vm_file[:-2] + 'asm'
-  with open(vm_file, 'rt') as f:
-    with open(out_file, 'wt') as out:
-      for line in f:
-        if not line.lstrip().startswith('//'):
-          command, *args = line.split()
-          if command == 'pop':
-            dest, = args
-          elif command == 'push':
-            val, = args
-            vm.stack.append(val)
-            vm.sp += 1
-            print()
