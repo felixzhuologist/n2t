@@ -5,7 +5,7 @@ def binary_op(op):
     decr_sp(),
     load_stack_top_into_d(),
     decr_sp(),
-    ['@SP', 'A=M', f'M=D{op}M'],
+    ['@SP', 'A=M', f'M=M{op}D'],
     incr_sp()
   )
 
