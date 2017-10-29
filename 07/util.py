@@ -1,11 +1,14 @@
 #!/usr/local/bin/python3
 
 from enum import Enum
+from itertools import count
 import os
 
 # base address for temp memory segment
 TEMP_BASE_ADDR = 5
 GENERAL_PURPOSE_REGISTERS = ['R13', 'R14', 'R15']
+# generate unique ids for each set of if/else statement labels
+IF_LABEL_ID_GEN = count()
 
 vm_to_asm_segment = {
   'local': 'LCL',
@@ -15,6 +18,19 @@ vm_to_asm_segment = {
 # map from vm version of a segment's name to its variable name in asm
 def get_segment_name(segment: str) -> str:
   return vm_to_asm_segment.get(segment, segment.upper())
+
+def if_else(comparator, true_block, false_block=None):
+  assert comparator in ['JEQ', 'JGT', 'JGE', 'JLT', 'JNE', 'JLE', 'JMP']
+  false_block = false_block or []
+  label_id = next(IF_LABEL_ID_GEN)
+  return concat( # assumes correct value is already loaded into D register
+    [f'@IF_EQUAL_{label_id}', f'D;{comparator}'], # if true skip to true block
+    false_block,
+    [f'@END_{label_id}', '0;JMP'], # jump over true block
+    [f'(IF_EQUAL_{label_id})'],
+    true_block,
+    [f'(END_{label_id})']
+  )
 
 def get_pointer_segment(pointer_val):
   return 'THIS' if str(pointer_val) == '0' else 'THAT'

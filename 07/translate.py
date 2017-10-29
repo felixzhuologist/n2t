@@ -1,7 +1,7 @@
 import argparse
 from functools import partial
 
-from arithmetic import binary_op, unary_op
+from arithmetic import binary_op, unary_op, binary_comp
 from push import push
 from pop import pop
 from util import concat
@@ -15,8 +15,13 @@ command_to_f = {
   'pop': pop,
   'add': partial(binary_op, op='+'),
   'sub': partial(binary_op, op='-'),
+  'and': partial(binary_op, op='&'),
+  'or': partial(binary_op, op='|'),
   'neg': partial(unary_op, op='-'),
-  'not': partial(unary_op, op='!')
+  'not': partial(unary_op, op='!'),
+  'eq': partial(binary_comp, comp='JEQ'),
+  'gt': partial(binary_comp, comp='JGT'),
+  'lt': partial(binary_comp, comp='JLT')
 }
 
 def not_yet_implemented(*args):

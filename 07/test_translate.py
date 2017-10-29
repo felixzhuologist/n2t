@@ -1,6 +1,6 @@
 from difflib import unified_diff
 
-from arithmetic import binary_op, unary_op
+from arithmetic import binary_op, unary_op, binary_comp
 from push import push
 from pop import pop
 
@@ -226,41 +226,75 @@ def test_arithmetic():
     'M=M+1',
   ])
 
-  # test_command(binary_comp, 'JEQ' expected=[
-  #   '@SP',
-  #   'M=M-1',
+  test_command(binary_comp, 'JEQ', expected=[
+    '@SP',
+    'M=M-1',
 
-  #   '@SP',
-  #   'A=M',
-  #   'D=M',
+    '@SP',
+    'A=M',
+    'D=M',
 
-  #   '@SP',
-  #   'M=M-1',
+    '@SP',
+    'M=M-1',
 
-  #   '@SP',
-  #   'A=M',
-  #   'D=M-D',
+    '@SP',
+    'A=M',
+    'D=M-D',
 
-  #   '@IF_EQUAL',
-  #   'D;JEQ',
+    '@IF_EQUAL_0',
+    'D;JEQ',
 
-  #   'M=0'
+    '@SP',
+    'A=M',
+    'M=0',
 
-  #   '@END'
-  #   '0;JMP'
+    '@END_0',
+    '0;JMP',
 
-  #   '(IF_EQUAL)',
-  #   'M=-1',
-  #   '(END)'
-  # ])
+    '(IF_EQUAL_0)',
+    '@SP',
+    'A=M',
+    'M=-1',
+    '(END_0)',
 
-  # test_command(binary_comp, 'JGT' expected=[
+    '@SP',
+    'M=M+1'
+  ])
 
-  # ])
+  test_command(binary_comp, 'JGT', expected=[
+    '@SP',
+    'M=M-1',
 
-  # test_command(binary_comp, 'JLT', expected=[
+    '@SP',
+    'A=M',
+    'D=M',
 
-  # ])
+    '@SP',
+    'M=M-1',
+
+    '@SP',
+    'A=M',
+    'D=M-D',
+
+    '@IF_EQUAL_1',
+    'D;JGT',
+
+    '@SP',
+    'A=M',
+    'M=0',
+
+    '@END_1',
+    '0;JMP',
+
+    '(IF_EQUAL_1)',
+    '@SP',
+    'A=M',
+    'M=-1',
+    '(END_1)',
+
+    '@SP',
+    'M=M+1'
+  ])
 
 if __name__ == '__main__':
   test_push()
