@@ -31,7 +31,7 @@ def pop_pointer(_, val):
   return concat(
     decr_sp(),
     load_stack_top_into_d(),
-    [f'@{segment}', 'A=M', 'M=D']
+    [f'@{segment}', 'M=D']
   )
 
 def pop_temp(_, index):

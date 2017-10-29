@@ -31,7 +31,7 @@ def push_heap(segment, index):
 def push_pointer(_, val):
   segment = get_pointer_segment(val)
   return concat(
-    [f'@{segment}', 'A=M', 'D=M'],
+    [f'@{segment}', 'D=M'],
     push_d_onto_stack(),
     incr_sp()
   )

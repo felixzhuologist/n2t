@@ -46,7 +46,6 @@ def test_push():
   # push from pointer
   test_command(push, 'pointer', 1, expected=[
     '@THAT',
-    'A=M',
     'D=M',
 
     '@SP',
@@ -116,7 +115,6 @@ def test_pop():
     'D=M',
 
     '@THIS',
-    'A=M',
     'M=D'
   ])
 
@@ -160,7 +158,7 @@ def test_arithmetic():
 
     '@SP',
     'A=M',
-    'M=D+M',
+    'M=M+D',
 
     '@SP',
     'M=M+1',
@@ -179,7 +177,7 @@ def test_arithmetic():
 
     '@SP',
     'A=M',
-    'M=D-M',
+    'M=M-D',
 
     '@SP',
     'M=M+1',
@@ -198,7 +196,7 @@ def test_arithmetic():
 
     '@SP',
     'A=M',
-    'M=D&M',
+    'M=M&D',
 
     '@SP',
     'M=M+1',
