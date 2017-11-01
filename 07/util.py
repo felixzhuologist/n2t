@@ -26,11 +26,14 @@ def if_else(comparator, true_block, false_block=None):
   return concat( # assumes correct value is already loaded into D register
     [f'@IF_EQUAL_{label_id}', f'D;{comparator}'], # if true skip to true block
     false_block,
-    [f'@END_{label_id}', '0;JMP'], # jump over true block
+    goto(f'END_{label_id}'), # jump over true block
     [f'(IF_EQUAL_{label_id})'],
     true_block,
     [f'(END_{label_id})']
   )
+
+def goto(label):
+  return [f'@{label}', '0;JMP']
 
 def get_pointer_segment(pointer_val):
   return 'THIS' if str(pointer_val) == '0' else 'THAT'

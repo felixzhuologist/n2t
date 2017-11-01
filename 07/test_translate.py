@@ -3,6 +3,8 @@ from difflib import unified_diff
 from arithmetic import binary_op, unary_op, binary_comp
 from push import push
 from pop import pop
+from util import goto
+from control_flow import label, cond_goto
 
 
 def test_command(f, *args, expected):
@@ -296,7 +298,33 @@ def test_arithmetic():
     'M=M+1'
   ])
 
+def test_gotos():
+  test_command(label, 'LOOP_START', expected=[
+    '(LOOP_START)'
+  ])
+
+  test_command(goto, 'LOOP_START', expected=[
+    '@LOOP_START',
+    '0;JMP'
+  ])
+
+  test_command(cond_goto, 'LOOP_START', expected=[
+    '@SP',
+    'A=M',
+    'D=M',
+
+    '@SP',
+    'M=M-1',
+
+    '@LOOP_START',
+    'D;JNE'
+  ])
+
+def test_functions():
+  pass
+
 if __name__ == '__main__':
   test_push()
   test_pop()
   test_arithmetic()
+  test_gotos()
