@@ -4,7 +4,7 @@ from arithmetic import binary_op, unary_op, binary_comp
 from push import push
 from pop import pop
 from util import goto
-from control_flow import label, cond_goto
+from control_flow import label, cond_goto, func_call
 
 
 def test_command(f, *args, expected):
@@ -321,10 +321,81 @@ def test_gotos():
   ])
 
 def test_functions():
-  pass
+  test_command(func_call, 'myfunc', 3, expected=[
+    # push frame (return_addr, LCL, ARG, THIS, THAT)
+    '@translate.myfunc$ret.1',
+    'D=A',
+    '@SP',
+    'A=M',
+    'M=D',
+
+    '@SP',
+    'M=M+1',
+
+    '@LCL',
+    'D=M',
+    '@SP',
+    'A=M',
+    'M=D',
+
+    '@SP',
+    'M=M+1',
+
+    '@ARG',
+    'D=M',
+    '@SP',
+    'A=M',
+    'M=D',
+
+    '@SP',
+    'M=M+1',
+
+    '@THIS',
+    'D=M',
+    '@SP',
+    'A=M',
+    'M=D',
+
+    '@SP',
+    'M=M+1',
+
+    '@THAT',
+    'D=M',
+    '@SP',
+    'A=M',
+    'M=D',
+
+    '@SP',
+    'M=M+1',
+
+    # load new ARG/LCL pointers: ARG = SP - 4 - nArgs, LCL = SP
+    '@SP',
+    'D=M',
+    '@ARG',
+    'M=D',
+    '@5',
+    'D=A',
+    '@ARG',
+    'M=M-D',
+    '@3',
+    'D=A',
+    '@ARG',
+    'M=M-D',
+
+    '@SP',
+    'D=M',
+    '@LCL',
+    'M=D',
+
+    '@translate.myfunc',
+    '0;JMP',
+
+    '(translate.myfunc$ret.1)',
+  ])
 
 if __name__ == '__main__':
   test_push()
   test_pop()
   test_arithmetic()
   test_gotos()
+  test_functions()

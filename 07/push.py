@@ -1,5 +1,6 @@
 from util import (load_constant_into_d, get_segment_name, concat,
-  get_pointer_segment, get_temp_addr, get_static_varname, incr_sp)
+  get_pointer_segment, get_temp_addr, get_static_varname, incr_sp,
+  push_d_onto_stack)
 
 
 def push(segment: str, value: str):
@@ -51,9 +52,6 @@ def push_static(_, index):
     push_d_onto_stack(),
     incr_sp()
   )
-
-def push_d_onto_stack():
-  return ['@SP', 'A=M', 'M=D']
 
 def load_heap_val_into_d(segment, index):
   return concat(

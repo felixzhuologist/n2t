@@ -60,3 +60,6 @@ def decr_sp():
 def load_stack_top_into_d():
   """ dereferences the stack pointer and stores it into the data register """
   return ['@SP', 'A=M', 'D=M']
+
+def push_d_onto_stack():
+  return ['@SP', 'A=M', 'M=D']
