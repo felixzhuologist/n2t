@@ -2,9 +2,10 @@ import argparse
 from functools import partial
 
 from arithmetic import binary_op, unary_op, binary_comp
+from control_flow import label, cond_goto, func_def, func_call, func_return
 from push import push
 from pop import pop
-from util import concat
+from util import concat, goto
 
 
 parser = argparse.ArgumentParser(description='translate vm code to assembly')
@@ -21,7 +22,13 @@ command_to_f = {
   'not': partial(unary_op, op='!'),
   'eq': partial(binary_comp, comp='JEQ'),
   'gt': partial(binary_comp, comp='JGT'),
-  'lt': partial(binary_comp, comp='JLT')
+  'lt': partial(binary_comp, comp='JLT'),
+  'label': label,
+  'goto': goto
+  'if-goto': cond_goto,
+  'function': func_def,
+  'return': func_return,
+  'call': func_call,
 }
 
 def not_yet_implemented(*args):

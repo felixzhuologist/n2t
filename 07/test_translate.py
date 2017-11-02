@@ -4,7 +4,7 @@ from arithmetic import binary_op, unary_op, binary_comp
 from push import push
 from pop import pop
 from util import goto
-from control_flow import label, cond_goto, func_call
+from control_flow import label, cond_goto, func_call, func_def, func_return
 
 
 def test_command(f, *args, expected):
@@ -392,6 +392,86 @@ def test_functions():
 
     '(translate.myfunc$ret.1)',
   ])
+
+  test_command(func_return, expected=[
+    '@SP',
+    'A=M',
+    'D=M',
+
+    '@ARG',
+    'A=M',
+    'M=D',
+
+    '@ARG',
+    'D=M',
+    '@SP',
+    'M=D+1',
+
+    '@LCL',
+    'M=M-1',
+    '@LCL',
+    'A=M',
+    'D=M',
+    '@THAT',
+    'M=D',
+
+    '@LCL',
+    'M=M-1',
+    '@LCL',
+    'A=M',
+    'D=M',
+    '@THIS',
+    'M=D',
+
+    '@LCL',
+    'M=M-1',
+    '@LCL',
+    'A=M',
+    'D=M',
+    '@ARG',
+    'M=D',
+
+    '@LCL', # store returnaddr in r13 before overwriting LCL
+    'D=M',
+    '@R13',
+    'M=D-1',
+    'M=M-1',
+
+    '@LCL',
+    'M=M-1',
+    '@LCL',
+    'A=M',
+    'D=M',
+    '@LCL',
+    'M=D',
+
+    '@R13',
+    '0;JMP',
+  ])
+
+  test_command(func_def, 'myfunc', 2, expected=[
+    '(translate.myfunc)',
+    '@SP', # LCL = SP
+    'D=M',
+    '@LCL',
+    'M=D',
+
+    '@0', # push locals
+    'D=A',
+    '@SP',
+    'A=M',
+    'M=D',
+    '@SP',
+    'M=M+1',
+    '@0',
+    'D=A',
+    '@SP',
+    'A=M',
+    'M=D',
+    '@SP',
+    'M=M+1',
+  ])
+
 
 if __name__ == '__main__':
   test_push()
