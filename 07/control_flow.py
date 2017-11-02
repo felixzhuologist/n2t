@@ -20,11 +20,13 @@ on return:
 - write return value and restore SP by using ARG
 - restore stack frame (by backtracking from LCL)
 """
+from itertools import count
 from push import push_constant
 from util import (concat, load_stack_top_into_d, decr_sp, incr_sp,
   load_constant_into_d, push_d_onto_stack, goto)
 
 _ = object()
+FUNC_CALL_LABEL_ID_GEN = count() # use global count across all funcs for now
 
 def label(labelname):
   return [f'({labelname})']
@@ -36,18 +38,17 @@ def cond_goto(labelname):
     [f'@{labelname}', 'D;JNE']
   )
 
-def func_def(func_name, nvars):
+def func_def(func_label, nvars):
   return concat(
-    label(get_func_start_label(func_name)),
+    label(func_label),
     set_segment_to_sp('LCL'),
     push_constant(_, '0') * nvars # this can be optimized by writing 0 directly
   )
 
-def func_call(func_name, nargs):
-  start_address = get_func_start_label(func_name)
-  return_address = get_func_end_label(func_name)
+def func_call(func_label, nargs):
+  return_address = get_func_end_label(func_label)
   return concat(
-    push_stack_frame(func_name),
+    push_stack_frame(return_address),
 
     set_segment_to_sp('ARG'),
     concat(load_constant_into_d(5), ['@ARG', 'M=M-D']),
@@ -55,7 +56,7 @@ def func_call(func_name, nargs):
 
     set_segment_to_sp('LCL'),
 
-    goto(start_address),
+    goto(func_label),
     label(return_address),
   )  
 
@@ -68,10 +69,10 @@ def func_return():
     goto('R13')
   )
 
-def push_stack_frame(func_name):
+def push_stack_frame(return_address):
   """ stack frame (bottom to top): [return address, LCL, ARG, THIS, THAT] """
   return concat(
-    push_return_address(func_name),
+    push_return_address(return_address),
     push_segment_pointer('LCL'),
     push_segment_pointer('ARG'),
     push_segment_pointer('THIS'),
@@ -85,8 +86,7 @@ def push_segment_pointer(segment):
     incr_sp()
   )
 
-def push_return_address(func_name):
-  return_address = get_func_end_label(func_name)
+def push_return_address(return_address):
   return concat(
     load_constant_into_d(return_address),
     push_d_onto_stack(),
@@ -111,13 +111,8 @@ def unpack_stack_frame():
 def set_segment_to_sp(segment):
   return ['@SP', 'D=M', f'@{segment}', 'M=D']
 
-# TODO
-def get_func_start_label(func_name):
-  return 'translate.myfunc'
-
-# TODO
-def get_func_end_label(func_name):
-  return 'translate.myfunc$ret.1'
+def get_func_end_label(func_label):
+  return f'{func_label}$ret.{next(FUNC_CALL_LABEL_ID_GEN)}'
 
 def pop_segment_pointer(segment):
   return concat(

@@ -321,9 +321,9 @@ def test_gotos():
   ])
 
 def test_functions():
-  test_command(func_call, 'myfunc', 3, expected=[
+  test_command(func_call, 'Main.myfunc', 3, expected=[
     # push frame (return_addr, LCL, ARG, THIS, THAT)
-    '@translate.myfunc$ret.1',
+    '@Main.myfunc$ret.0',
     'D=A',
     '@SP',
     'A=M',
@@ -387,10 +387,10 @@ def test_functions():
     '@LCL',
     'M=D',
 
-    '@translate.myfunc',
+    '@Main.myfunc',
     '0;JMP',
 
-    '(translate.myfunc$ret.1)',
+    '(Main.myfunc$ret.0)',
   ])
 
   test_command(func_return, expected=[
@@ -449,8 +449,8 @@ def test_functions():
     '0;JMP',
   ])
 
-  test_command(func_def, 'myfunc', 2, expected=[
-    '(translate.myfunc)',
+  test_command(func_def, 'Main.myfunc', 2, expected=[
+    '(Main.myfunc)',
     '@SP', # LCL = SP
     'D=M',
     '@LCL',
