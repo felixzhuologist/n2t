@@ -42,7 +42,7 @@ def func_def(func_label, nvars):
   return concat(
     label(func_label),
     set_segment_to_sp('LCL'),
-    push_constant(_, '0') * nvars # this can be optimized by writing 0 directly
+    push_constant(_, '0') * int(nvars) # this can be optimized by writing 0 directly
   )
 
 def func_call(func_label, nargs):
