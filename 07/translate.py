@@ -24,7 +24,7 @@ command_to_f = {
   'gt': partial(binary_comp, comp='JGT'),
   'lt': partial(binary_comp, comp='JLT'),
   'label': label,
-  'goto': goto
+  'goto': goto,
   'if-goto': cond_goto,
   'function': func_def,
   'return': func_return,
@@ -35,6 +35,9 @@ def not_yet_implemented(*args):
   return ' '.join(args)
 
 def parse_line(line):
+  if line.find('//') != -1:
+    line = line[:line.find('//')].strip()
+  
   command, *args = line.split()
   handler = command_to_f.get(command, not_yet_implemented)
   return '\n'.join(handler(*args))

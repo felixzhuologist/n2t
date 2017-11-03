@@ -33,8 +33,8 @@ def label(labelname):
 
 def cond_goto(labelname):
   return concat(
-    load_stack_top_into_d(),
     decr_sp(),
+    load_stack_top_into_d(),
     [f'@{labelname}', 'D;JNE']
   )
 
