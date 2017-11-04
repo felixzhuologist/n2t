@@ -62,11 +62,13 @@ def func_call(func_label, nargs):
 
 def func_return():
   return concat(
+    decr_sp(),
     load_stack_top_into_d(),
     ['@ARG', 'A=M', 'M=D'],          # *ARG = D
     ['@ARG', 'D=M', '@SP', 'M=D+1'], # SP = ARG + 1
     unpack_stack_frame(),
-    goto('R13')
+
+    ['@R13', 'A=M', '0;JMP']          # JMP *R13
   )
 
 def push_stack_frame(return_address):
@@ -103,8 +105,8 @@ def unpack_stack_frame():
     pop_segment_pointer('THAT'),
     pop_segment_pointer('THIS'),
     pop_segment_pointer('ARG'),
-    # set R13 = LCL - 2 before overwritting LCL
-    ['@LCL', 'D=M', '@R13', 'M=D-1', 'M=M-1'],
+    # set R13 = *(LCL - 2) before overwritting LCL
+    ['@LCL', 'D=M', '@R13', 'M=D-1', 'M=M-1', 'A=M', 'D=M', '@R13', 'M=D'],
     pop_segment_pointer('LCL'),
   )
 
