@@ -48,11 +48,16 @@ def func_def(func_label, nvars):
 def func_call(func_label, nargs):
   return_address = get_func_end_label(func_label)
   return concat(
+    # push dummy value onto stack to allocate space for return value when nargs = 0
+    load_constant_into_d(0),
+    push_d_onto_stack(),
+    incr_sp(),
+
     push_stack_frame(return_address),
 
     set_segment_to_sp('ARG'),
     concat(load_constant_into_d(5), ['@ARG', 'M=M-D']),
-    concat(load_constant_into_d(nargs), ['@ARG', 'M=M-D']),
+    concat(load_constant_into_d(int(nargs) + 1), ['@ARG', 'M=M-D']),
 
     set_segment_to_sp('LCL'),
 
@@ -68,7 +73,7 @@ def func_return():
     ['@ARG', 'D=M', '@SP', 'M=D+1'], # SP = ARG + 1
     unpack_stack_frame(),
 
-    ['@R13', 'A=M', '0;JMP']          # JMP *R13
+    ['@R13', 'A=M', '0;JMP']         # JMP *R13
   )
 
 def push_stack_frame(return_address):

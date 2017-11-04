@@ -59,14 +59,17 @@ if __name__ == '__main__':
     out_lines = translate_file(args.path)
   else: # compiling dir
     # put Sys.vm entry point at start of list
-    filenames = sorted(os.listdir(args.path), key=lambda s: s != 'Sys.vm')
+    vm_files = [f for f in os.listdir(args.path) if f.endswith('.vm')]
+    filenames = sorted(vm_files, key=lambda s: s != 'Sys.vm')
     assert filenames[0] == 'Sys.vm'
-    for filename in os.listdir(args.path):
+    print(f"compiling files: {', '.join(filenames)}")
+    for filename in filenames:
       full_path = os.path.join(args.path, filename)
-      out_lines += translate_file(filepath)
+      out_lines += translate_file(full_path)
 
   out_path = args.path.replace('.vm', '.asm') if args.path.endswith('.vm') else \
-    os.path.join(args.path, os.path.basename(args.path) + '.vm')
+    os.path.join(args.path, os.path.basename(args.path) + '.asm')
+  print(f'wrote compiled file to: {out_path}')
   with open(out_path, 'wt') as f:
     for line in out_lines:
       print(line, file=f)
