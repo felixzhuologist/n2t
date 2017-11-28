@@ -1,5 +1,6 @@
 module Lexer where
 
+import Text.Parsec
 import Text.Parsec.String (Parser)
 import Text.Parsec.Language (emptyDef)
 
@@ -13,6 +14,8 @@ lexer = Tok.makeTokenParser style
              "var", "int", "char", "boolean", "void", "true", "false", "null",
              "this", "let", "do", "if", "else", "while", "return"]
     style = emptyDef {
+              Tok.identStart = letter <|> char '_',
+              Tok.identLetter = alphaNum <|> char '_',
               Tok.commentLine = "//",
               Tok.commentStart = "/**",
               Tok.commentEnd = "*/",
@@ -23,11 +26,14 @@ lexer = Tok.makeTokenParser style
 integer :: Parser Integer
 integer = Tok.integer lexer
 
-float :: Parser Double
-float = Tok.float lexer
+str :: Parser String
+str = Tok.stringLiteral lexer
 
 parens :: Parser a -> Parser a
 parens = Tok.parens lexer
+
+brackets :: Parser a -> Parser a
+brackets = Tok.brackets lexer
 
 commaSep :: Parser a -> Parser [a]
 commaSep = Tok.commaSep lexer

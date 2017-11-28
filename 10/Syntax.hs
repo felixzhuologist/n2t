@@ -43,14 +43,14 @@ data Statement
 data Expr
   = IntVal Int
   | StrVal String
+  | BoolVal Bool
   | Var Name
   | ArrayIndex Name Expr
   | FuncCall
-  | BoolVal Bool
   | Null
   | This
-  | Uno Uop Expr
-  | Duo Bop Expr Expr
+  | Unary Uop Expr
+  | Binary Bop Expr Expr
   deriving (Eq, Ord, Show)
 
 data Bop
@@ -66,7 +66,7 @@ data Bop
   deriving (Eq, Ord, Show)
 
 data Uop
-  = Neg
+  = Neg -- todo: remove as this just gets parsed as IntVal with neg value
   | Not
   deriving (Eq, Ord, Show)
 
