@@ -10,7 +10,9 @@ import Parser
 
 main :: IO ()
 main = do
-  _ <- runTestTT (TestList [tParseFactor, tParseExpr])
+  _ <- runTestTT (TestList [
+        tParseFactor, tParseExpr,
+        tParseStmt, tParseBlock])
   return ()
 
 testp :: Parser a -> String -> Either ParseError a
@@ -34,3 +36,18 @@ tParseExpr = "parse expr" ~: TestList [
                 "1 + (2 + 3)" ~: testp expr "1 + (2 + 3)" ~?= Right (Binary Plus (IntVal 1) (Binary Plus (IntVal 2) (IntVal 3))),
                 "10 - 2 * 5" ~: testp expr "10 - 2 * 5" ~?= Right (Binary Minus (IntVal 10) (Binary Times (IntVal 2) (IntVal 5))),
                 "(10 - 2) * 5" ~: testp expr "(10 - 2) * 5" ~?= Right (Binary Times (Binary Minus (IntVal 10) (IntVal 2)) (IntVal 5))]
+
+-- statement parsing tests
+
+tParseStmt :: Test
+tParseStmt = "parse statements" ~: TestList [
+                "let" ~: testp statement "let _id = \"hi\";" ~?= Right (Let "_id" (StrVal "hi")),
+                "let a[3 + 4] = true;" ~: testp statement "let a[3 + 4] = true;" ~?= Right (LetArray "a" (Binary Plus (IntVal 3) (IntVal 4)) (BoolVal True)),
+                "return" ~: testp statement "return;" ~?= Right Return,
+                "return 3" ~: testp statement "return 3;" ~?= Right (ReturnVal (IntVal 3))]
+
+tParseBlock :: Test
+tParseBlock = "pares block" ~: TestList [
+                "if" ~: testp block "if (a = 0) {return 3;}" ~?= Right [If (Binary Eq (Var "a") (IntVal 0)) [(ReturnVal (IntVal 3))]],
+                "ifelse" ~: testp block "if (true) {return;} else {let a = 1;}" ~?= Right [IfElse (BoolVal True) [Return] [Let "a" (IntVal 1)]],
+                "while" ~: testp block "while (i > 0) {let a[i] = 0; let i = i - 1;}" ~?= Right [While (Binary Gt (Var "i") (IntVal 0)) [LetArray "a" (Var "i") (IntVal 0), Let "i" (Binary Minus (Var "i") (IntVal 1))]]]

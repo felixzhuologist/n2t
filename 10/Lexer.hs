@@ -32,6 +32,9 @@ str = Tok.stringLiteral lexer
 parens :: Parser a -> Parser a
 parens = Tok.parens lexer
 
+braces :: Parser a -> Parser a
+braces = Tok.braces lexer
+
 brackets :: Parser a -> Parser a
 brackets = Tok.brackets lexer
 
