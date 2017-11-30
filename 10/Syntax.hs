@@ -6,6 +6,7 @@ type Name = String
 
 -- Program structure
 data Program = Class Name [AttrDecl] [MethodDecl]
+  deriving (Eq, Ord, Show)
 
 type AttrDecl = (JScope, JType, (NonEmpty Name)) -- todo
 
@@ -16,10 +17,13 @@ data JType
   | JChar
   | JBool
   | JObject
+  deriving (Eq, Ord, Show)
 
 data JScope = Static | Field
+  deriving (Eq, Ord, Show)
 
 data DeclType = ConstructorDecl | FunctionDecl | MethodDecl
+  deriving (Eq, Ord, Show)
 
 type Param = (JType, Name)
 

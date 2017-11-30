@@ -52,3 +52,9 @@ reserved = Tok.reserved lexer
 
 reservedOp :: String -> Parser ()
 reservedOp = Tok.reservedOp lexer
+
+semi :: Parser String
+semi = Tok.semi lexer
+
+dot :: Parser String
+dot = Tok.dot lexer
