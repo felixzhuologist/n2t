@@ -168,25 +168,28 @@ attr :: Parser AttrDecl
 attr = do
   scope <- attrScope
   t <- jType
-  attrs <- fmap nonEmpty $ many identifier
+  attrs <- fmap nonEmpty $ commaSep identifier
   guard $ isJust attrs
   return (scope, t, fromJust attrs)
 
 method :: Parser MethodDecl
 method = do
   mtype <- methodType
-  rtype <- jType
+  rtype <- jType <|> void
   name <- identifier
   params <- parens $ commaSep param
   body <- braces $ methodBody
   return (mtype, rtype, name, params, body)
 
-jType :: Parser JType
+jType :: Parser JType -- parse all possible variable types (not void)
 jType = try jint <|> try jchar <|> try jbool <|> jobj where
   jint = fmap (const JInt) (reserved "int")
   jchar = fmap (const JChar) (reserved "char")
   jbool = fmap (const JBool) (reserved "bool")
   jobj = fmap (const JObject) identifier
+
+void :: Parser JType
+void = fmap (const Void) (reserved "void")
 
 attrScope :: Parser JScope
 attrScope = try static <|> try field where
@@ -213,6 +216,7 @@ methodBody = do
 
 varDecl :: Parser VarDecl
 varDecl = do
+  reserved "var"
   t <- jType
   vars <- fmap nonEmpty $ commaSep identifier
   guard $ isJust vars

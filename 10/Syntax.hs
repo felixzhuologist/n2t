@@ -17,6 +17,7 @@ data JType
   | JChar
   | JBool
   | JObject
+  | Void
   deriving (Eq, Ord, Show)
 
 data JScope = Static | Field
