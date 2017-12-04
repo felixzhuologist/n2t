@@ -51,7 +51,7 @@ data Expr
   | BoolVal Bool
   | Var Name
   | ArrayIndex Name Expr
-  | FuncCall
+  | Call FuncCall
   | Null
   | This
   | Unary Uop Expr

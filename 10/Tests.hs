@@ -31,7 +31,9 @@ tParseFactor = "parse factor" ~: TestList [
                   "\"somestr\"" ~: testp factor "\"somestr\"" ~?= Right (StrVal "somestr"),
                   "A[3]" ~: testp factor "A[3]" ~?= Right (ArrayIndex "A" (IntVal 3)),
                   "null" ~: testp factor "null" ~?= Right Null,
-                  "this" ~: testp factor "this" ~?= Right This]
+                  "this" ~: testp factor "this" ~?= Right This,
+                  "add(a, 3)" ~: testp factor "add(a, 3)" ~?= Right (Call (Func "add" [Var "a", IntVal 3])),
+                  "Dog.eat(\"apple\")" ~: testp factor "Dog.eat(\"apple\")" ~?= Right (Call (Method "Dog" "eat" [StrVal "apple"]))]
 
 tParseExpr :: Test
 tParseExpr = "parse expr" ~: TestList [
@@ -45,8 +47,9 @@ tParseStmt :: Test
 tParseStmt = "parse statements" ~: TestList [
                 "let" ~: testp statement "let _id = \"hi\";" ~?= Right (Let "_id" (StrVal "hi")),
                 "let a[3 + 4] = true;" ~: testp statement "let a[3 + 4] = true;" ~?= Right (LetArray "a" (Binary Plus (IntVal 3) (IntVal 4)) (BoolVal True)),
-                "return" ~: testp statement "return;" ~?= Right Return,
-                "return 3" ~: testp statement "return 3;" ~?= Right (ReturnVal (IntVal 3))]
+                "return;" ~: testp statement "return;" ~?= Right Return,
+                "return 3;" ~: testp statement "return 3;" ~?= Right (ReturnVal (IntVal 3)),
+                "do f(3);" ~: testp statement "do f(3);" ~?= Right (Do (Func "f" [(IntVal 3)]))]
 
 tParseBlock :: Test
 tParseBlock = "pares block" ~: TestList [

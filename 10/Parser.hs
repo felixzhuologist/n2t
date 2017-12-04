@@ -4,10 +4,10 @@ import Control.Monad (guard)
 
 import Data.List.NonEmpty
 import Data.Maybe
+import System.IO
 
 import Text.Parsec
 import Text.Parsec.String (Parser)
-
 import qualified Text.Parsec.Expr as Ex
 import qualified Text.Parsec.Token as Tok
 
@@ -39,7 +39,7 @@ factor = try intval
       <|> try strval
       <|> try boolval
       <|> try array
-      -- <|> try call
+      <|> try (fmap Call call)
       <|> try nullval
       <|> try this
       <|> var
@@ -66,11 +66,18 @@ array = do
   index <- brackets expr
   return $ ArrayIndex name index
 
-call :: Parser Expr
-call = undefined
-
-call' :: Parser FuncCall
-call' = undefined
+call :: Parser FuncCall
+call = try methodCall <|> functionCall where
+  methodCall = do
+    className <- identifier
+    dot
+    methodName <- identifier
+    args <- parens $ commaSep expr
+    return $ Method className methodName args
+  functionCall = do
+    name <- identifier
+    args <- parens $ commaSep expr
+    return $ Func name args
 
 nullval :: Parser Expr
 nullval = fmap (const Null) (reserved "null")
@@ -136,7 +143,7 @@ whileStmt = do
 doStmt :: Parser Statement
 doStmt = do
   reserved "do"
-  func <- call'
+  func <- call
   semi
   return $ Do func
 
@@ -153,6 +160,7 @@ returnValStmt = do
 -- program structure
 program :: Parser Program
 program = do
+  Tok.whiteSpace lexer
   reserved "class"
   className <- identifier
   (attrs, methods) <- braces classBody
@@ -169,6 +177,7 @@ attr = do
   scope <- attrScope
   t <- jType
   attrs <- fmap nonEmpty $ commaSep identifier
+  semi
   guard $ isJust attrs
   return (scope, t, fromJust attrs)
 
@@ -185,7 +194,7 @@ jType :: Parser JType -- parse all possible variable types (not void)
 jType = try jint <|> try jchar <|> try jbool <|> jobj where
   jint = fmap (const JInt) (reserved "int")
   jchar = fmap (const JChar) (reserved "char")
-  jbool = fmap (const JBool) (reserved "bool")
+  jbool = fmap (const JBool) (reserved "boolean")
   jobj = fmap (const JObject) identifier
 
 void :: Parser JType
@@ -222,6 +231,15 @@ varDecl = do
   guard $ isJust vars
   semi
   return (t, fromJust vars)
+
+-- | parseFromFile p filePath runs a string parser p on the input
+-- read from filePath using readFile. Returns either a
+-- ParseError (Left) or a value of type a (Right).
+parseFromFile :: Parser a -> String -> IO (Either ParseError a)
+parseFromFile parser filename = do
+  handle <- openFile filename ReadMode
+  str <- hGetContents handle
+  pure $ parse parser "" str
 
 {--
 contents :: Parser a -> Parser a
