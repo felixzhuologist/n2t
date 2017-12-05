@@ -71,7 +71,7 @@ data Bop
   deriving (Eq, Ord, Show)
 
 data Uop
-  = Neg -- todo: remove as this just gets parsed as IntVal with neg value
+  = Neg -- not used in parsing/AST but used for code gen
   | Not
   deriving (Eq, Ord, Show)
 
