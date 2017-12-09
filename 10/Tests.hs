@@ -21,7 +21,8 @@ main = do
         tParseStmt, tParseBlock,
         tAttrs, tMethods,
         tParseFile,
-        tGenFactors, tEnv])
+        tGenFactors,
+        tEnv, tStmtCodegen])
   return ()
 
 testp :: Parser a -> String -> Either ParseError a
@@ -152,3 +153,7 @@ tEnv = "test getting var from env" ~: TestList [
           "tries local first" ~: getIdentifier testEnv "a" ~?= (LCL, 0),
           "indexing works" ~: getIdentifier testEnv "c" ~?= (THIS, 1),
           "gets static" ~: getIdentifier testEnv "d" ~?= (STATIC, 0)]
+
+tStmtCodegen :: Test
+tStmtCodegen = "tStmtCodegen" ~: TestList [
+                  "let a = 3" ~: (render $ pp (Let "a" (IntVal 3)) testEnv) ~?= (unlines' ["push constant 3", "pop local 0"])]

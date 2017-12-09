@@ -53,6 +53,7 @@ data Segment
   | THIS
   | THAT
   | CONST
+  | TEMP
   deriving (Eq, Ord, Show)
 
 instance ConstPP Segment where
@@ -81,13 +82,49 @@ instance ConstPP Uop where
 push :: Segment -> Doc -> Doc
 push seg val = (text "push") <+> (constPP seg) <+> val
 
+pop :: (Segment, Int) -> Doc
+pop (seg, index) = (text "pop") <+> (constPP seg) <+> (int index)
+
+ifgoto :: String -> Doc
+ifgoto l = (text "if-goto") <+> (text l)
+
+goto :: String -> Doc
+goto l = (text "goto") <+> (text l)
+
+label :: String -> Doc
+label l = (text "label") <+> (text l)
+
+-- should probably make Block a newtype to implement pp
+ppBlock :: [Statement] -> Environment -> Doc
+ppBlock stmts env = vcat $ map (flip pp env) stmts
+
 instance PP Statement where
-  pp (Let var val) env = undefined
-  pp (If cond block) _ = undefined
-  pp (IfElse cond b1 b2) _ = undefined
-  pp (While cond body) _ = undefined
-  pp (Do f) env = pp f env
-  pp Return _ = text "return"
+  pp (Let var val) env = (pp val env) $$ (pop $ getIdentifier env var)
+  -- TODO: generate unique labels
+  pp (If cond block) env =
+    (pp (Unary Neg cond) env) $$
+    ifgoto "IF_END" $$
+    (ppBlock block env) $$
+    label "IF_END"
+  pp (IfElse cond b1 b2) env = 
+    (pp cond env) $$
+    ifgoto "IF_TRUE" $$
+    (ppBlock b2 env) $$
+    goto "IFELSE_END" $$
+    label "IF_TRUE" $$
+    (ppBlock b1 env) $$
+    label "IFELSE_END"
+  pp (While cond body) env =
+    label "LOOP_START" $$
+    (pp (Unary Neg cond) env) $$
+    ifgoto "LOOP_END" $$
+    (ppBlock body env) $$
+    goto "LOOP_START" $$
+    label "LOOP_END"
+  -- when returning empty value, push dummy return value in return codegen and
+  -- pop the dummy value in Do func codegen
+  pp (Do f) env = (pp f env) $$ (pop (TEMP, 0))
+  pp Return _ =  (push CONST (char '0')) $$ text "return"
   pp (ReturnVal e) env = (pp e env) $$ (text "return")
 
 instance PP Expr where
@@ -97,7 +134,7 @@ instance PP Expr where
   pp (StrVal s) _ = undefined
   pp (BoolVal True) env = pp (Unary Neg (IntVal 1)) env
   pp (BoolVal False) _ = push CONST (char '0')
-  pp (Var s) _ = undefined -- need symbol table?
+  pp (Var s) env = let (segment, i) = getIdentifier env s in push segment (int i)
   pp (ArrayIndex arr index) _ = undefined
   pp (Call f) env = pp f env
   pp Null _ = push CONST (char '0')
