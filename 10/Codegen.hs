@@ -42,9 +42,9 @@ instance PP Expr where
   pp (IntVal n) 
     | n >= 0 = push CONST (int n)
     | otherwise = (push CONST (int n)) $$ (pp Neg)
-  pp (StrVal s) = push CONST (text s)
-  pp (BoolVal True) = push CONST (char '0')
-  pp (BoolVal False) = push CONST (char '1')
+  pp (StrVal s) = undefined
+  pp (BoolVal True) = pp $ Unary Neg (IntVal 1)
+  pp (BoolVal False) = push CONST (char '0')
   pp (Var s) = undefined -- need symbol table?
   pp (ArrayIndex arr index) = undefined
   pp (Call f) = pp f
@@ -55,8 +55,8 @@ instance PP Expr where
 instance PP Bop where
   pp Plus = text "add"
   pp Minus = text "sub"
-  pp Times = undefined
-  pp Divide = undefined 
+  pp Times = (text "call Math.multiply")
+  pp Divide = (text "call Math.divide")
   pp Intersect = text "and"
   pp Union = text "or"
   pp Lt = text "lt"

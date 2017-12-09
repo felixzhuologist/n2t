@@ -1,15 +1,18 @@
 module Tests where
 
+import Data.List
 import Data.List.NonEmpty
 import Data.Maybe
 
 import Text.Parsec
 import Text.Parsec.String (Parser)
+import Text.PrettyPrint
 
 import Test.HUnit
 
 import Syntax
 import Parser
+import Codegen
 
 main :: IO ()
 main = do
@@ -17,7 +20,8 @@ main = do
         tParseFactor, tParseExpr,
         tParseStmt, tParseBlock,
         tAttrs, tMethods,
-        tParseFile])
+        tParseFile,
+        tGenFactors])
   return ()
 
 testp :: Parser a -> String -> Either ParseError a
@@ -73,7 +77,7 @@ add_method
 tMethods = "parse method defs" ~: TestList [
               "method" ~: testp method "constructor void add(int a, int b) {var int c; return;}" ~?= Right add_method]
 
--- e2e test
+-- e2e parsing test
 squareGame :: Program
 squareGame =
   Class
@@ -123,3 +127,16 @@ tParseFile = "parse file" ~: TestList ["SquareGame.jack" ~: p "Square/SquareGame
     case result of
       (Left _) -> assert False
       (Right ast') -> assert (ast == ast')
+
+-- codegen tests
+unlines' :: [String] -> String
+unlines' = intercalate "\n"
+
+tGenFactors :: Test
+tGenFactors = "codegen without symbol table" ~: TestList [
+                "add" ~: (render $ pp (Binary Plus (IntVal 3) (IntVal 5))) ~?= (unlines' ["push constant 3", "push constant 5", "add"]),
+                "mul" ~: (render $ pp (Binary Times (IntVal 1) (IntVal 2))) ~?= (unlines' ["push constant 1", "push constant 2", "call Math.multiply"]),
+                "null" ~: (render $ pp Null) ~?= "push constant 0",
+                "true" ~: (render $ pp (BoolVal True)) ~?= (unlines' ["push constant 1", "neg"]),
+                "false" ~: (render $ pp (BoolVal False)) ~?= "push constant 0",
+                "function call" ~: (render $ pp (Call $ Func "f" [(IntVal 9), (IntVal 3)])) ~?= (unlines' ["push constant 9", "push constant 3", "call f 2"])]
