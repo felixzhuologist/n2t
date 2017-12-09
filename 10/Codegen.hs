@@ -1,20 +1,44 @@
 module Codegen where
 
+import Control.Applicative
+import Data.Maybe
 import Text.PrettyPrint
 
 import Syntax
 import Parser
 
-data VarKind = Arg | Local
-
-type Environment = (ClassSymbols, MethodSymbols)
--- contains statics and fields for a class
-type ClassSymbols = [(Name, JType, JScope)]
--- contains arguments and vars for a method
-type MethodSymbols = [(Name, JType, VarKind)]
+{-
+When generating code the only state we need to keep track of is the current
+class symbol table and the current method symbol table. To make things simpler,
+instead of generating code and updating the symbol table as we go using a state monad, we get the
+symbol table from the class/subroutine AST node first, and then call pp to do
+codegen afterwards. This is also easy because of the Jack grammar which already
+groups declarations together for us.
+-}
+-- TODO: enforce specific JKind using DataKinds?
+type Environment = ([(Name, JType, Segment)], -- locals
+                    [(Name, JType, Segment)], -- arguments
+                    [(Name, JType, Segment)], -- fields
+                    [(Name, JType, Segment)]) -- statics
 
 emptyEnv :: Environment
-emptyEnv = ([], [])
+emptyEnv = ([], [], [], [])
+
+-- get the segment and index for a variable from the Environment
+getIdentifier :: Environment -> Name -> (Segment, Int)
+getIdentifier (lcl, arg, this, static) v = 
+  case foldl (<|>) Nothing (map (findByKey v (\(x, _, _) -> x)) [lcl, arg, this, static]) of
+    Nothing -> error "undefined symbol" -- TODO
+    (Just (i, (_, _, segment))) -> (segment, i)
+
+
+-- find by key f and return both the element and the index if it exists
+findByKey :: (Eq a) => a -> (b -> a) -> [b] -> Maybe (Int, b)
+findByKey = findByKey' 0 where
+  findByKey' _ _ _ [] = Nothing
+  findByKey' n x f (x':xs)
+    | x == f x' = Just (n, x')
+    | otherwise = findByKey' (n + 1) x f xs
 
 class PP a where
   pp :: a -> Environment -> Doc
@@ -22,12 +46,14 @@ class PP a where
 class ConstPP a where
   constPP :: a -> Doc
 
-data Segment = STATIC
-             | LCL
-             | ARG
-             | THIS
-             | THAT
-             | CONST
+data Segment
+  = STATIC
+  | LCL
+  | ARG
+  | THIS
+  | THAT
+  | CONST
+  deriving (Eq, Ord, Show)
 
 instance ConstPP Segment where
   constPP STATIC = text "static"
@@ -56,7 +82,7 @@ push :: Segment -> Doc -> Doc
 push seg val = (text "push") <+> (constPP seg) <+> val
 
 instance PP Statement where
-  pp (Let var val) _ = undefined
+  pp (Let var val) env = undefined
   pp (If cond block) _ = undefined
   pp (IfElse cond b1 b2) _ = undefined
   pp (While cond body) _ = undefined

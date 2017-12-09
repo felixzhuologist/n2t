@@ -21,7 +21,7 @@ main = do
         tParseStmt, tParseBlock,
         tAttrs, tMethods,
         tParseFile,
-        tGenFactors])
+        tGenFactors, tEnv])
   return ()
 
 testp :: Parser a -> String -> Either ParseError a
@@ -140,3 +140,15 @@ tGenFactors = "codegen without symbol table" ~: TestList [
                 "true" ~: (render $ pp (BoolVal True) emptyEnv) ~?= (unlines' ["push constant 1", "neg"]),
                 "false" ~: (render $ pp (BoolVal False) emptyEnv) ~?= "push constant 0",
                 "function call" ~: (render $ pp (Call $ Func "f" [(IntVal 9), (IntVal 3)]) emptyEnv) ~?= (unlines' ["push constant 9", "push constant 3", "call f 2"])]
+
+tEnv :: Test
+testEnv :: Environment
+testEnv = ([("a", JInt, LCL)],
+           [("a", JInt, ARG), ("b", JInt, ARG)],
+           [("a", JInt, THIS), ("c", JInt, THIS)],
+           [("d", JInt, STATIC)])
+
+tEnv = "test getting var from env" ~: TestList [
+          "tries local first" ~: getIdentifier testEnv "a" ~?= (LCL, 0),
+          "indexing works" ~: getIdentifier testEnv "c" ~?= (THIS, 1),
+          "gets static" ~: getIdentifier testEnv "d" ~?= (STATIC, 0)]
