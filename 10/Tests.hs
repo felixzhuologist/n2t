@@ -134,9 +134,9 @@ unlines' = intercalate "\n"
 
 tGenFactors :: Test
 tGenFactors = "codegen without symbol table" ~: TestList [
-                "add" ~: (render $ pp (Binary Plus (IntVal 3) (IntVal 5))) ~?= (unlines' ["push constant 3", "push constant 5", "add"]),
-                "mul" ~: (render $ pp (Binary Times (IntVal 1) (IntVal 2))) ~?= (unlines' ["push constant 1", "push constant 2", "call Math.multiply"]),
-                "null" ~: (render $ pp Null) ~?= "push constant 0",
-                "true" ~: (render $ pp (BoolVal True)) ~?= (unlines' ["push constant 1", "neg"]),
-                "false" ~: (render $ pp (BoolVal False)) ~?= "push constant 0",
-                "function call" ~: (render $ pp (Call $ Func "f" [(IntVal 9), (IntVal 3)])) ~?= (unlines' ["push constant 9", "push constant 3", "call f 2"])]
+                "add" ~: (render $ pp (Binary Plus (IntVal 3) (IntVal 5)) emptyEnv) ~?= (unlines' ["push constant 3", "push constant 5", "add"]),
+                "mul" ~: (render $ pp (Binary Times (IntVal 1) (IntVal 2)) emptyEnv) ~?= (unlines' ["push constant 1", "push constant 2", "call Math.multiply"]),
+                "null" ~: (render $ pp Null emptyEnv) ~?= "push constant 0",
+                "true" ~: (render $ pp (BoolVal True) emptyEnv) ~?= (unlines' ["push constant 1", "neg"]),
+                "false" ~: (render $ pp (BoolVal False) emptyEnv) ~?= "push constant 0",
+                "function call" ~: (render $ pp (Call $ Func "f" [(IntVal 9), (IntVal 3)]) emptyEnv) ~?= (unlines' ["push constant 9", "push constant 3", "call f 2"])]
