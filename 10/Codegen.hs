@@ -54,6 +54,7 @@ data Segment
   | THAT
   | CONST
   | TEMP
+  | POINTER
   deriving (Eq, Ord, Show)
 
 instance ConstPP Segment where
@@ -100,6 +101,16 @@ ppBlock stmts env = vcat $ map (flip pp env) stmts
 
 instance PP Statement where
   pp (Let var val) env = (pp val env) $$ (pop $ getIdentifier env var)
+  pp (LetArray arr index val) env =
+    (pp (Var arr) env) $$ -- push *arr + index onto stack (i.e. base addr + offset)
+    (pp index env) $$
+    (text "add") $$ 
+    (pp val env) $$ -- push val onto stack
+    (pop (TEMP, 0)) $$ -- push val into temp register
+    (pop (POINTER, 1)) $$ -- push dest addr into THAT register
+    (push TEMP (char '0')) $$ 
+    (pop (THAT, 0)) -- store val into addr in THAT
+
   -- TODO: generate unique labels
   pp (If cond block) env =
     (pp (Unary Neg cond) env) $$
@@ -135,7 +146,12 @@ instance PP Expr where
   pp (BoolVal True) env = pp (Unary Neg (IntVal 1)) env
   pp (BoolVal False) _ = push CONST (char '0')
   pp (Var s) env = let (segment, i) = getIdentifier env s in push segment (int i)
-  pp (ArrayIndex arr index) _ = undefined
+  pp (ArrayIndex arr index) env =
+    (pp (Var arr) env) $$ -- push *arr + index onto stack (i.e. base addr + offset)
+    (pp index env) $$
+    (text "add") $$ 
+    pop (POINTER, 1) $$
+    push THAT (char '0')
   pp (Call f) env = pp f env
   pp Null _ = push CONST (char '0')
   pp (Unary op e) env = (pp e env) $$ (constPP op)
