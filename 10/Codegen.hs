@@ -2,6 +2,7 @@ module Codegen where
 
 import Control.Applicative
 import Data.Maybe
+import qualified Data.List.NonEmpty as NonEmpty
 import Text.PrettyPrint
 
 import Syntax
@@ -14,12 +15,14 @@ instead of generating code and updating the symbol table as we go using a state 
 symbol table from the class/subroutine AST node first, and then call pp to do
 codegen afterwards. This is also easy because of the Jack grammar which already
 groups declarations together for us.
+We use an array for simplicity since we'll need to keep track of indicies of segments
 -}
 -- TODO: enforce specific JKind using DataKinds?
-type Environment = ([(Name, JType, Segment)], -- locals
-                    [(Name, JType, Segment)], -- arguments
-                    [(Name, JType, Segment)], -- fields
-                    [(Name, JType, Segment)]) -- statics
+type SymbolTable = [(Name, JType, Segment)]
+type Environment = (SymbolTable, -- locals
+                    SymbolTable, -- arguments
+                    SymbolTable, -- fields
+                    SymbolTable) -- statics
 
 emptyEnv :: Environment
 emptyEnv = ([], [], [], [])
@@ -110,10 +113,9 @@ instance PP Statement where
     (pop (POINTER, 1)) $$ -- push dest addr into THAT register
     (push TEMP (char '0')) $$ 
     (pop (THAT, 0)) -- store val into addr in THAT
-
   -- TODO: generate unique labels
   pp (If cond block) env =
-    (pp (Unary Neg cond) env) $$
+    (pp (Unary Not cond) env) $$
     ifgoto "IF_END" $$
     (ppBlock block env) $$
     label "IF_END"
@@ -127,7 +129,7 @@ instance PP Statement where
     label "IFELSE_END"
   pp (While cond body) env =
     label "LOOP_START" $$
-    (pp (Unary Neg cond) env) $$
+    (pp (Unary Not cond) env) $$
     ifgoto "LOOP_END" $$
     (ppBlock body env) $$
     goto "LOOP_START" $$
@@ -165,3 +167,21 @@ fcall :: String -> [Expr] -> Environment -> Doc
 fcall func args env = pushArgs $$ funcCall where
   pushArgs = vcat $ map (flip pp env) args
   funcCall = (text "call") <+> (text func) <+> (int $ length args)
+
+compile :: Program -> Doc
+compile (Class name attrs methods) = vcat $ map (compileMethod classSymbols) methods where
+  classSymbols = (getSymbols Field attrs, getSymbols Static attrs)
+
+compileMethod :: (SymbolTable, SymbolTable) -> MethodDecl -> Doc
+compileMethod (fields, statics) (ConstructorDecl, t, name, args, body) = undefined
+
+getSymbols :: JScope -> [AttrDecl] -> SymbolTable
+getSymbols k attrs = (filter matchK attrs) >>= getEntries where
+  matchK :: AttrDecl -> Bool
+  matchK (k', _, _) = k == k'
+  getEntries :: AttrDecl -> [(Name, JType, Segment)] -- unpack vars from a line of decls
+  getEntries (k, t, vars) = NonEmpty.toList $ NonEmpty.map (\v -> (v, t, jscopeToSegment k)) vars
+
+jscopeToSegment :: JScope -> Segment
+jscopeToSegment Static = STATIC
+jscopeToSegment Field = THIS
