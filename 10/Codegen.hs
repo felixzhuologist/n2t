@@ -34,7 +34,6 @@ getIdentifier (lcl, arg, this, static) v =
     Nothing -> error "undefined symbol" -- TODO
     (Just (i, (_, _, segment))) -> (segment, i)
 
-
 -- find by key f and return both the element and the index if it exists
 findByKey :: (Eq a) => a -> (b -> a) -> [b] -> Maybe (Int, b)
 findByKey = findByKey' 0 where
@@ -67,6 +66,8 @@ instance ConstPP Segment where
   constPP THIS = text "this"
   constPP THAT = text "that"
   constPP CONST = text "constant"
+  constPP TEMP = text "temp"
+  constPP POINTER = text "pointer"
 
 instance ConstPP Bop where
   constPP Plus = text "add"
@@ -156,6 +157,7 @@ instance PP Expr where
     push THAT (char '0')
   pp (Call f) env = pp f env
   pp Null _ = push CONST (char '0')
+  pp This _ = push POINTER (char '0')
   pp (Unary op e) env = (pp e env) $$ (constPP op)
   pp (Binary op e1 e2) env = (pp e1 env) $$ (pp e2 env) $$ (constPP op)
 
@@ -163,17 +165,42 @@ instance PP FuncCall where
   pp (Func f args) env = fcall f args env
   pp (Method c m args) env = fcall (c ++ "." ++ m) args env
 
+-- TODO: change method to data to be able to implement pp
+ppMethod :: Name -> MethodDecl -> Environment -> Doc
+ppMethod className (c, t, name, _, (vars, stmts)) env =
+  (text "function" <+> (text className <> char '.' <> text name) <+> (int $ length vars)) $$
+  doSetup c env $$
+  (vcat $ map (flip pp env) stmts) $$
+  doTeardown t
+
+doSetup :: DeclType -> Environment -> Doc
+doSetup FunctionDecl _ = Text.PrettyPrint.empty
+doSetup MethodDecl _ = (push ARG (char '0')) $$ (pop (POINTER, 0)) -- load THIS
+doSetup ConstructorDecl (_, _, fields, statics) = -- alloc space for the new object and load THIS
+  (push CONST (int $ length fields + length statics)) $$
+  (text "call Memory.alloc 1") $$
+  (pop (POINTER, 0))
+
+doTeardown :: JType -> Doc
+doTeardown Void = push CONST (char '0')
+doTeardown _ = Text.PrettyPrint.empty
+
 fcall :: String -> [Expr] -> Environment -> Doc
 fcall func args env = pushArgs $$ funcCall where
   pushArgs = vcat $ map (flip pp env) args
   funcCall = (text "call") <+> (text func) <+> (int $ length args)
 
 compile :: Program -> Doc
-compile (Class name attrs methods) = vcat $ map (compileMethod classSymbols) methods where
+compile (Class name attrs methods) = vcat $ map (compileMethod name classSymbols) methods where
   classSymbols = (getSymbols Field attrs, getSymbols Static attrs)
 
-compileMethod :: (SymbolTable, SymbolTable) -> MethodDecl -> Doc
-compileMethod (fields, statics) (ConstructorDecl, t, name, args, body) = undefined
+compileMethod :: Name -> (SymbolTable, SymbolTable) -> MethodDecl -> Doc
+compileMethod className (fields, statics) subroutine@(_, _, _, args, (lcls, _)) =
+  ppMethod className subroutine symbolTable where
+    symbolTable = (locals, arguments, fields, statics)
+    arguments = map (\(t, n) -> (n, t, ARG)) args
+    locals = lcls >>= getEntries
+    getEntries (t, vars) = NonEmpty.toList $ NonEmpty.map (\v -> (v, t, LCL)) vars
 
 getSymbols :: JScope -> [AttrDecl] -> SymbolTable
 getSymbols k attrs = (filter matchK attrs) >>= getEntries where
