@@ -4,6 +4,7 @@ import Control.Applicative
 import Data.Maybe
 import qualified Data.List.NonEmpty as NonEmpty
 import Text.PrettyPrint
+import System.Environment
 
 import Syntax
 import Parser
@@ -72,8 +73,8 @@ instance ConstPP Segment where
 instance ConstPP Bop where
   constPP Plus = text "add"
   constPP Minus = text "sub"
-  constPP Times = (text "call Math.multiply")
-  constPP Divide = (text "call Math.divide")
+  constPP Times = (text "call Math.multiply 2")
+  constPP Divide = (text "call Math.divide 2")
   constPP Intersect = text "and"
   constPP Union = text "or"
   constPP Lt = text "lt"
@@ -114,7 +115,7 @@ instance PP Statement where
     (pop (POINTER, 1)) $$ -- push dest addr into THAT register
     (push TEMP (char '0')) $$ 
     (pop (THAT, 0)) -- store val into addr in THAT
-  -- TODO: generate unique labels
+  -- TODO: use state monad to get incrementing labels
   pp (If cond block) env =
     (pp (Unary Not cond) env) $$
     ifgoto "IF_END" $$
@@ -123,18 +124,20 @@ instance PP Statement where
   pp (IfElse cond b1 b2) env = 
     (pp cond env) $$
     ifgoto "IF_TRUE" $$
-    (ppBlock b2 env) $$
-    goto "IFELSE_END" $$
+    goto "IF_FALSE" $$
     label "IF_TRUE" $$
     (ppBlock b1 env) $$
+    goto "IFELSE_END" $$
+    label "IF_FALSE" $$
+    (ppBlock b2 env) $$
     label "IFELSE_END"
   pp (While cond body) env =
-    label "LOOP_START" $$
+    label "WHILE_EXP" $$
     (pp (Unary Not cond) env) $$
-    ifgoto "LOOP_END" $$
+    ifgoto "WHILE_END" $$
     (ppBlock body env) $$
-    goto "LOOP_START" $$
-    label "LOOP_END"
+    goto "WHILE_EXP" $$
+    label "WHILE_END"
   -- when returning empty value, push dummy return value in return codegen and
   -- pop the dummy value in Do func codegen
   pp (Do f) env = (pp f env) $$ (pop (TEMP, 0))
@@ -146,7 +149,7 @@ instance PP Expr where
     | n >= 0 = push CONST (int n)
     | otherwise = (push CONST (int n)) $$ (constPP Neg)
   pp (StrVal s) _ = undefined
-  pp (BoolVal True) env = pp (Unary Neg (IntVal 1)) env
+  pp (BoolVal True) env = pp (Unary Not (IntVal 0)) env
   pp (BoolVal False) _ = push CONST (char '0')
   pp (Var s) env = let (segment, i) = getIdentifier env s in push segment (int i)
   pp (ArrayIndex arr index) env =
@@ -163,12 +166,21 @@ instance PP Expr where
 
 instance PP FuncCall where
   pp (Func f args) env = fcall f args env
-  pp (Method c m args) env = fcall (c ++ "." ++ m) args env
+  -- TODO: JObject needs to have kind * -> * and store the class name when parsing
+  -- so that we know what to call (Classname.method not instancename.method)
+  pp (Method c m args) env = 
+    (let (seg, idx) = getIdentifier env c in push seg (int idx)) $$
+    fcall (c ++ "." ++ m) args env
+
+fcall :: String -> [Expr] -> Environment -> Doc
+fcall func args env = pushArgs $$ funcCall where
+  pushArgs = vcat $ map (flip pp env) args
+  funcCall = (text "call") <+> (text func) <+> (int $ length args)
 
 -- TODO: change method to data to be able to implement pp
 ppMethod :: Name -> MethodDecl -> Environment -> Doc
-ppMethod className (c, t, name, _, (vars, stmts)) env =
-  (text "function" <+> (text className <> char '.' <> text name) <+> (int $ length vars)) $$
+ppMethod className (c, t, name, _, (vars, stmts)) env@(locals, _, _, _) =
+  (text "function" <+> (text className <> char '.' <> text name) <+> (int $ length locals)) $$
   doSetup c env $$
   (vcat $ map (flip pp env) stmts) $$
   doTeardown t
@@ -182,13 +194,7 @@ doSetup ConstructorDecl (_, _, fields, statics) = -- alloc space for the new obj
   (pop (POINTER, 0))
 
 doTeardown :: JType -> Doc
-doTeardown Void = push CONST (char '0')
 doTeardown _ = Text.PrettyPrint.empty
-
-fcall :: String -> [Expr] -> Environment -> Doc
-fcall func args env = pushArgs $$ funcCall where
-  pushArgs = vcat $ map (flip pp env) args
-  funcCall = (text "call") <+> (text func) <+> (int $ length args)
 
 compile :: Program -> Doc
 compile (Class name attrs methods) = vcat $ map (compileMethod name classSymbols) methods where
@@ -212,3 +218,11 @@ getSymbols k attrs = (filter matchK attrs) >>= getEntries where
 jscopeToSegment :: JScope -> Segment
 jscopeToSegment Static = STATIC
 jscopeToSegment Field = THIS
+
+main :: IO ()
+main = do
+  [inpath, outpath] <- getArgs
+  parsed <- parseFromFile program inpath
+  case parsed of
+    (Left _) -> putStrLn "parse error"
+    (Right prog) -> writeFile outpath (render $ compile prog)
