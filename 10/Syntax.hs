@@ -16,7 +16,7 @@ data JType
   = JInt
   | JChar
   | JBool
-  | JObject
+  | JObject Name
   | Void
   deriving (Eq, Ord, Show)
 

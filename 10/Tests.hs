@@ -66,7 +66,7 @@ tParseBlock = "pares block" ~: TestList [
 -- program structure parsing tests
 tAttrs = "parse attributes" ~: TestList [
           "static int a, b, c;" ~: testp attr "static int a, b, c;" ~?= Right (Static, JInt, (fromList ["a", "b", "c"])),
-          "field Dog my_dog;" ~: testp attr "field Dog my_dog;" ~?= Right (Field, JObject, (fromList ["my_dog"]))]
+          "field Dog my_dog;" ~: testp attr "field Dog my_dog;" ~?= Right (Field, (JObject "Dog"), (fromList ["my_dog"]))]
 
 add_method :: MethodDecl
 add_method
@@ -83,9 +83,9 @@ squareGame :: Program
 squareGame =
   Class
     "SquareGame"
-    [(Field, JObject, fromList ["square"]),
+    [(Field, (JObject "Square"), fromList ["square"]),
      (Field, JInt, fromList ["direction"])]
-    [(ConstructorDecl, JObject , "new", [], (
+    [(ConstructorDecl, (JObject "SquareGame"), "new", [], (
         [],
         [Let "square" (Call (Method "Square" "new" [IntVal 0,IntVal 0,IntVal 30])),
          Let "direction" (IntVal 0),ReturnVal This])),
@@ -136,9 +136,9 @@ unlines' = intercalate "\n"
 tGenFactors :: Test
 tGenFactors = "codegen without symbol table" ~: TestList [
                 "add" ~: (render $ pp (Binary Plus (IntVal 3) (IntVal 5)) emptyEnv) ~?= (unlines' ["push constant 3", "push constant 5", "add"]),
-                "mul" ~: (render $ pp (Binary Times (IntVal 1) (IntVal 2)) emptyEnv) ~?= (unlines' ["push constant 1", "push constant 2", "call Math.multiply"]),
+                "mul" ~: (render $ pp (Binary Times (IntVal 1) (IntVal 2)) emptyEnv) ~?= (unlines' ["push constant 1", "push constant 2", "call Math.multiply 2"]),
                 "null" ~: (render $ pp Null emptyEnv) ~?= "push constant 0",
-                "true" ~: (render $ pp (BoolVal True) emptyEnv) ~?= (unlines' ["push constant 1", "neg"]),
+                "true" ~: (render $ pp (BoolVal True) emptyEnv) ~?= (unlines' ["push constant 0", "not"]), -- slides say -1 but reference implementation does not 0
                 "false" ~: (render $ pp (BoolVal False) emptyEnv) ~?= "push constant 0",
                 "function call" ~: (render $ pp (Call $ Func "f" [(IntVal 9), (IntVal 3)]) emptyEnv) ~?= (unlines' ["push constant 9", "push constant 3", "call f 2"])]
 

@@ -195,7 +195,7 @@ jType = try jint <|> try jchar <|> try jbool <|> jobj where
   jint = fmap (const JInt) (reserved "int")
   jchar = fmap (const JChar) (reserved "char")
   jbool = fmap (const JBool) (reserved "boolean")
-  jobj = fmap (const JObject) identifier
+  jobj = fmap JObject identifier
 
 void :: Parser JType
 void = fmap (const Void) (reserved "void")

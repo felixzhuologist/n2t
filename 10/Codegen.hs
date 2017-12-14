@@ -1,3 +1,14 @@
+{-
+This code should be mostly correct for expressions/statements/arrays but
+still needs some replumbing for classes:
+- Environment needs to keep track of some internal state in order to create unique
+labels.
+- Environment needs to also have a list of subroutines to look up. Should be able to
+get whether a subroutine is a function, constructor, or method by looking it up.
+- compile() needs to store the subroutines into the Environment
+- method codegen needs to push the class as the first argument to the function
+if the function is a method
+-}
 module Codegen where
 
 import Control.Applicative
@@ -9,17 +20,9 @@ import System.Environment
 import Syntax
 import Parser
 
-{-
-When generating code the only state we need to keep track of is the current
-class symbol table and the current method symbol table. To make things simpler,
-instead of generating code and updating the symbol table as we go using a state monad, we get the
-symbol table from the class/subroutine AST node first, and then call pp to do
-codegen afterwards. This is also easy because of the Jack grammar which already
-groups declarations together for us.
-We use an array for simplicity since we'll need to keep track of indicies of segments
--}
 -- TODO: enforce specific JKind using DataKinds?
 type SymbolTable = [(Name, JType, Segment)]
+-- TODO: might be cleaner to make this a data type using record syntax
 type Environment = (SymbolTable, -- locals
                     SymbolTable, -- arguments
                     SymbolTable, -- fields
@@ -166,9 +169,7 @@ instance PP Expr where
 
 instance PP FuncCall where
   pp (Func f args) env = fcall f args env
-  -- TODO: JObject needs to have kind * -> * and store the class name when parsing
-  -- so that we know what to call (Classname.method not instancename.method)
-  pp (Method c m args) env = 
+  pp (Method c m args) env = let  
     (let (seg, idx) = getIdentifier env c in push seg (int idx)) $$
     fcall (c ++ "." ++ m) args env
 
